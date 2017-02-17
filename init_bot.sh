@@ -19,3 +19,6 @@ tmux new-session -d -s fakedns "python fakedns.py"
 # start mirai
 cp /mnt/vagrant/mirai.dbg /tmp
 tmux new-session -d -s mirai "/tmp/mirai.dbg"
+
+# remove default route
+route del default

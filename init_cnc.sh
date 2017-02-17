@@ -185,7 +185,7 @@ cd /root/Mirai-Source-Code/loader/
 ./build.debug.sh
 ./build.sh
 
-
+route del default
 
 
 
