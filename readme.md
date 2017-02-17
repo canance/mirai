@@ -11,7 +11,7 @@
     - admin access via telnet port 23
     - admin credentials: admin/admin
   - bot (10.0.0.20)
-    - tmux sessions running fakedns and mirror
+    - tmux sessions running fakedns and mirai
     - fake dns redirects all queries to 10.0.0.10
 
 ### Quick Start
