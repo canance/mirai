@@ -18,4 +18,9 @@ Vagrant.configure(2) do |config|
     bot.vm.hostname = "bot"
   end
 
+  config.vm.define "victim" do |victim|
+    victim.vm.network "private_network", ip: "10.0.0.30"
+    victim.vm.provision :shell, path: "init_victim.sh"
+    victim.vm.hostname = "victim"
+  end
 end

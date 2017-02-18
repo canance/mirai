@@ -7,12 +7,13 @@
 - Private network (10.0.0.0/8)
 - Servers
   - cnc (10.0.0.10)
-    - tmux session running cnc
+    - tmux session running cnc, scan
     - admin access via telnet port 23
     - admin credentials: admin/admin
   - bot (10.0.0.20)
     - tmux sessions running fakedns and mirai
     - fake dns redirects all queries to 10.0.0.10
+  - victim (10.0.0.30)
 
 ### Quick Start
 
@@ -40,6 +41,4 @@ $ telnet 10.0.0.10 23
 ```
 
 ### Todo
-- Add a victim VM
-- Start scanListen and loader
 - Integrate with DigitalOcean API

