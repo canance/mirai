@@ -14,6 +14,7 @@
     - tmux sessions running fakedns and mirai
     - fake dns redirects all queries to 10.0.0.10
   - victim (10.0.0.30)
+    - tmux session running busybox telnetd
 
 ### Quick Start
 
