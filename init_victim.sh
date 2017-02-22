@@ -37,10 +37,10 @@ wget https://www.busybox.net/downloads/binaries/1.26.2-i686/busybox &2>/dev/null
 chmod +x busybox
 tmux new-session -d -s telnetd "./busybox telnetd -F"
 # fakedns
-# ifconfig lo:1 8.8.8.8/32
-# echo "nameserver 8.8.8.8" > /etc/resolv.conf
-# cd /mnt/vagrant
-# tmux new-session -d -s fakedns "python fakedns.py"
+ifconfig lo:1 8.8.8.8/32
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+cd /mnt/vagrant
+tmux new-session -d -s fakedns "python fakedns.py"
 
-# # remove default route
-# route del default
+# remove default route
+route del default
