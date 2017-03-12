@@ -7,7 +7,7 @@
 #          Charles Frank, Jr
 
 HISTORY_FILE="/root/.ash_history"
-BLACKLIST_WORDS="(busybox|ftpget|ftpput|tftp|tftpd|ftpd|ftp|wget|ssh|telnet|mirai)"
+BLACKLIST_WORDS="(ftpget|ftpput|tftp|tftpd|ftpd|ftp|wget|ssh|telnet|mirai)"
 OUTBOUND_PORTS="^(21|22|25|80|443)$"
 ARGS="$*"
 SLEEP_TIME=10
