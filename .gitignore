@@ -1,3 +1,4 @@
 .vagrant
 .DS_Store
 ssh_config
+files/mirai.dbg

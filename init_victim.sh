@@ -30,12 +30,12 @@ pts/9
 EOF
 
 # mirai likes busybox telnetd
-touch /root/.hushlogin
-
 cd /root
-wget https://www.busybox.net/downloads/binaries/1.26.2-i686/busybox &2>/dev/null
+touch .hushlogin
+wget https://www.busybox.net/downloads/binaries/1.26.2-i686/busybox 2>/dev/null
 chmod +x busybox
 tmux new-session -d -s telnetd "./busybox telnetd -F"
+
 # fakedns
 ifconfig lo:1 8.8.8.8/32
 echo "nameserver 8.8.8.8" > /etc/resolv.conf
