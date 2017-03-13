@@ -1,14 +1,14 @@
-# Date:    11 March 2017
+# Date:    12 March 2017
 #
-# serial:  11032017
+# serial:  12032017
 #
 # Authors: Cory Nance
 #          Samuel Jarocki
 #          Charles Frank, Jr
 
 HISTORY_FILE="/root/.ash_history"
-BLACKLIST_WORDS="(ftpget|ftpput|tftp|tftpd|ftpd|ftp|wget|ssh|telnet|mirai)"
-OUTBOUND_PORTS="^(21|22|25|80|443)$"
+BLACKLIST_CMDS="ftpget ftpput tftp tftpd ftpd ftp wget ssh telnet mirai"
+OUTBOUND_PORTS="21 22 25 80 443"
 ARGS="$*"
 SLEEP_TIME=10
 
@@ -25,9 +25,10 @@ usage(){
 }
 
 detected(){
-	/bin/reboot
-	/bin/shutdown -r now
-	/bin/init 6
+	#/bin/reboot
+	#/bin/shutdown -r now
+	#/bin/init 6
+	sleep 0.1
 }
 
 # define security checks
@@ -35,28 +36,31 @@ detected(){
 
 blacklist_netstat(){
 	# check netstat
-	hits=$(/bin/netstat -tun | tail -n +2 | tr -s ' ' | cut -d ' ' -f5 | cut -d ':' -f2 | grep -E "$OUTBOUND_PORTS" | wc -l)
-	if [ $hits -gt 0 ]; then
-		echo "[FAIL] blacklist_netstat"
-		detected
-		return 1
-	else
-		echo "[PASS] blacklist_netstat"
-		return 0
-	fi
+	for port in $OUTBOUND_PORTS; do
+		hits=$(/bin/netstat -tun | tail -n +2 | tr -s ' ' | cut -d ' ' -f5 | cut -d ':' -f2 | grep $port | wc -l)
+		if [ $hits -gt 0 ]; then
+			echo "[FAIL] blacklist_netstat $port"
+			kill_pid_by_port $port
+			detected
+		else
+			echo "[PASS] blacklist_netstat $port"
+		fi
+	done
 }
 
 
 blacklist_ps(){
-	hits=$(/bin/ps aux | grep -E "$BLACKLIST_CMDS" | wc -l)
-	if [ $hits -gt 0 ]; then
-		echo "[FAIL] blacklist_ps"
-		detected
-		return 1
-	else
-		echo "[PASS] blacklist_ps"
-		return 0
-	fi
+	for cmd in $BLACKLIST_CMDS; do
+		hits=$(/bin/ps aux | grep "$cmd" | wc -l)
+		if [ $hits -gt 1 ]; then
+			pid=$(/bin/ps aux | grep "$cmd" | tr -s " " | cut -d " " -f 2)
+			kill_pid $pid
+			echo "[FAIL] blacklist_ps $cmd"
+			detected
+		else
+			echo "[PASS] blacklist_ps $cmd"
+		fi
+	done
 }
 
 blacklist_history(){
@@ -71,6 +75,37 @@ blacklist_history(){
     fi
 }
 
+kill_pid(){
+	pid=$1
+	if [ ! -z $pid ]; then
+		kill -9 $pid
+		echo "[INFO] Killed $pid"
+	fi
+}
+
+kill_pid_by_port(){
+	if [ $# -ne 1 ]; then
+		return 2
+	fi
+
+	port="$1"
+	pid=$(netstat -tunlp | grep ":$port" | tr -s " " | cut -d " " -f 7 | cut -d "/" -f 1)
+	if [ ! -z $pid ]; then
+		kill_pid $pid
+		return 0
+	else
+		return 1
+	fi
+}
+
+kill_telnet(){
+	kill_pid_by_port 23
+}
+
+kill_ssh(){
+	kill_pid_by_port 22
+}
+
 # process arguments
 while true
 do
@@ -78,12 +113,20 @@ do
 		for key in "$@"
 		do
 			case $key in
+				-g|--history)
+					blacklist_history
+					shift
+				;;
 				-h|--help)
 					usage
 					shift
 				;;
-				-g|--history)
-					blacklist_history
+				-j|--kill-ssh)
+					kill_ssh
+					shift	
+				;;			
+				-k|--kill-telnet)
+					kill_telnet
 					shift
 				;;
 				-n|--netstat)
@@ -92,6 +135,10 @@ do
 				;;
 				-p|--ps)
 					blacklist_ps
+					shift
+				;;
+				-x|--run-once)
+					exit
 					shift
 				;;
 				*)
