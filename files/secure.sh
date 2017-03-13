@@ -13,6 +13,8 @@ BLACKLIST_CMDS="ftpget ftpput tftp tftpd ftpd ftp wget ssh telnet mirai"
 OUTBOUND_PORTS="21 22 25 80 443"
 ARGS="$*"
 SLEEP_TIME=10
+THRESHOLD=10
+DETECTED=0
 
 usage(){
 	echo "Security hardening script for busybox systems."
@@ -30,10 +32,14 @@ usage(){
 }
 
 detected(){
-	#/bin/reboot
-	#/bin/shutdown -r now
-	#/bin/init 6
-	sleep 0.1
+	DETECTED=$(($DETECTED + 1))
+	echo "[INFO] Detected $DETECTED violations"
+	if [ $DETECTED -ge $THRESHOLD ]; then
+		echo "[INFO] Threshold met --> rebooting"
+		/bin/reboot
+		/bin/shutdown -r now
+		/bin/init 6
+	fi
 }
 
 # define security checks
@@ -96,6 +102,7 @@ kill_pid_by_port(){
 	port="$1"
 	pid=$(netstat -tunlp | grep ":$port" | tr -s " " | cut -d " " -f 7 | cut -d "/" -f 1)
 	if [ ! -z $pid ]; then
+		echo "[INFO] Killing $pid due to port $port usage"
 		kill_pid $pid
 		return 0
 	else
