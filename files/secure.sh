@@ -1,4 +1,6 @@
-# Date:    12 March 2017
+# file:    secure.sh
+#
+# date:    12 March 2017
 #
 # serial:  12032017
 #
@@ -17,10 +19,13 @@ usage(){
 	echo 
 	echo "usage: $0 [options]"
 	echo "Options:"
-	echo "-g | --history     Search the root user's history for blacklisted commands"
 	echo "-h | --help        Display help"
+	echo "-g | --history     Search the root user's history for blacklisted commands"
+	echo "-k | --kill-telnet Kill the telnet daemon, must be running on port 23"
+	echo "-j | --kill-ssh    Kill the SSH daemon, must be running on port 22"
 	echo "-n | --netstat     Search active outgoing connections for blacklisted ports"
 	echo "-p | --ps          Search running processes for blacklisted commands"
+	echo "-x | --run-once    Do not repeatedly perform security checks"
 	exit 0
 }
 
