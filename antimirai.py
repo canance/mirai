@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # File:      antimirai.sh
 # Date:    11 March 2017
 #
@@ -203,10 +204,7 @@ if __name__ == '__main__':
                 print(RUN_LOCATION + decodedFile)
                 tn.write("rm -rf " + RUN_LOCATION + cronFile + " \n")
                 response=tn.read_until(CMD_PROMPT, 3)
-                tn.write("echo " + RUN_LOCATION + decodedFile + " | at now + 1 minute")
-                #tn.write('echo ' + RUN_LOCATION + decodedFile + ' | at -t `date -v+60S "+%Y%m%d%H%M%S"`')
-                #tn.write("/bin/sh " + RUN_LOCATION + decodedFile + " &\n")
-                #tn.write("chmod +x " +  RUN_LOCATION + decodedFile + " && ./" +  RUN_LOCATION + decodedFile + "&\n")
+                tn.write("/usr/bin/nohup /bin/sh " + RUN_LOCATION + decodedFile + " &\n")
                 response=tn.read_until(CMD_PROMPT, 3)
                 break
             if case(999):
