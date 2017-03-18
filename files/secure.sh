@@ -28,6 +28,7 @@ usage(){
 	echo "-n | --netstat     Search active outgoing connections for blacklisted ports"
 	echo "-p | --ps          Search running processes for blacklisted commands"
 	echo "-x | --run-once    Do not repeatedly perform security checks"
+	echo "-t | --test        Test caller script gets execution (output file name passed variable)"
 	exit 0
 }
 
@@ -118,6 +119,10 @@ kill_ssh(){
 	kill_pid_by_port 22
 }
 
+test_args(){
+	echo "$@ \n " > $(date +"%Y%m%d_%H%M%S").test
+}
+
 # process arguments
 while true
 do
@@ -147,6 +152,12 @@ do
 				;;
 				-p|--ps)
 					blacklist_ps
+					shift
+				;;
+				-t|--test)
+				    echo $@
+					test_args "$@"
+					exit
 					shift
 				;;
 				-x|--run-once)
