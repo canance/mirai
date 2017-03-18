@@ -20,6 +20,8 @@ __author__ = 'dsu_csc791_spring2017'
 CMD_PROMPT = "$ "
 DATETIME = strftime("%Y%m%d_%H%m")
 RUN_LOCATION = "/tmp/"
+FILE_CHUNK = 2048
+
 
 class switch(object):
     def __init__(self, value):
@@ -51,7 +53,7 @@ def get_args():
     parser.add_argument('-p', '--port', type=int, help='* Port number', required=True)
     parser.add_argument('-u', '--user', type=str, help='* Logon user name', required=True)
     parser.add_argument('-pw', '--password', type=str, help='* Password for --user', required=True)
-    parser.add_argument('-c', '--cron', type=str, help='Create a cron job on target device to monitor for changes to telnet/ssh. Supply file location/name')
+    parser.add_argument('-f', '--file_exec', type=str, help='Execute file on device, supply filname')
     parser.add_argument('-l', '--logging', type=str, help='Setup [r]syslog logging on device', required=False)
     parser.add_argument('-o', '--output', type=str, help='Output file (default "date_time_mirai_harden_TARGET_PORT")e',
                         required=False, nargs='+', default=DATETIME)
@@ -63,7 +65,12 @@ def get_args():
     4 - create new random user, disable/nologin vulnerable one
     5 - change default port for telnet/ssh to random in /etc/services
     6 - fake vuln => chroot jail telnet, log everything
-    999 - kill and disable telnet/ssh(ensure measure to prevent lockout?)''', required=False, default=0)
+    7 - upload hardening/monitoring script for execution on device, use -a to add arguments to pass.
+        REQUIRES -f option (e.g -s 7 -f [filename] [-a="-t testMe"])
+    999 - kill and disable telnet/ssh(ensure measure to prevent lockout?)
+    ''', required=False, default=0)
+    parser.add_argument('-a', '--remote_arg', nargs='+',
+                        help='Arguements to pass to remote script arguments (a="-t test")', required=False)
     parser.add_argument('-pr', '--proto', type=str, help='Target protocol, if other than telnet',
                         required=False, default='telnet')
 
@@ -72,12 +79,14 @@ def get_args():
     logging.info(args)
     # Return all variable values
     print(args)
-    return args.target, args.port, args.user, args.password, args.cron, args.output, args.severity, args.proto
+    return args.target, args.port, args.user, args.password, args.file_exec, args.output, args.severity, ' '.join(
+        args.remote_arg), args.proto
 
 
 # create random alpha-numeric password
 def passwd_gen(size=12, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
+
 
 def login_telnet(tn, user, password):
     response = tn.read_until("login: ")
@@ -85,8 +94,8 @@ def login_telnet(tn, user, password):
     if password:
         response = tn.read_until("Password: ")
         tn.write(password + "\n")
-    tn.write("ls\n")
-    response = tn.read_until(CMD_PROMPT, 3)
+    # tn.write("w \n")
+    # response = tn.read_until(CMD_PROMPT, 3)
     return tn
 
 
@@ -100,9 +109,9 @@ def change_passwd_telnet(tn):
     tn.write(p + "\n")
     response = tn.read_until("Retype new UNIX password: ")
     tn.write(p + "\n")
-    response = tn.read_until(CMD_PROMPT, 3)
     targetDetails = "%s:%d:%s:%s:%s" % (target, port, proto, user, p,)
     log.info("Changed values: \t%s" % targetDetails)
+
 
 def is_valid_ip(ip):
     try:
@@ -111,6 +120,7 @@ def is_valid_ip(ip):
     except socket.error:
         log.error("%s is not a valid IP" % ip)
         return False
+
 
 def is_open(ip, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -147,9 +157,17 @@ def query_yes_no(question, default=None):
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
+def split_by_length(s, block_size):
+    w = []
+    n = len(s)
+    for i in range(0, n, block_size):
+        w.append(s[i:i + block_size])
+    return w
+
+
 if __name__ == '__main__':
     # Run get_args()
-    target, port, user, password, cron, output, severity, proto = get_args()
+    target, port, user, password, file_exec, output, severity, arg_str, proto = get_args()
     targetDetails = "%s:%d:%s:%s:%s" % (target, port, proto, user, password)
 
     # setup logging
@@ -186,26 +204,42 @@ if __name__ == '__main__':
                                         "WAN IP (%s) to host.allow/iptables?" % ip, default="yes")): addWan = True
                 if (query_yes_no(
                             "For host blocking, did you want to add your internal LAN IP (%s) to allow?" % sockname,
-                            default="yes")): addLan = True
-#                if (query_yes_no("Would you like to add a host/network to host.allow?", default="no")):
+                        default="yes")): addLan = True
+                #                if (query_yes_no("Would you like to add a host/network to host.allow?", default="no")):
                 break
             if case(7):
-                log.info("Uploading cron file '%s' to setup on device." % cron)
-                with open(cron) as f:
+                log.info("Uploading file_exec file '%s' to setup on device." % file_exec)
+                with open(file_exec) as f:
                     content = f.read()
-                content_serialized = base64.b64encode(content)
-                cronFile = cron.strip('.\\')
-                decodedFile = DATETIME + "_RUN_" + cronFile
-                cronFile = DATETIME + "_" + cronFile
-                tn.write("echo " + content_serialized + " > " + RUN_LOCATION + cronFile + " \n")
+
+                _execFile = file_exec.strip('.\\')
+
+                # convert file contents to base64 and split into chunks to send reliably over telnet
+                content_serialized = split_by_length(base64.b64encode(content), FILE_CHUNK)
+
+                execFile = RUN_LOCATION + DATETIME + "_" + _execFile
+                decodedFile = RUN_LOCATION + DATETIME + "_RUN_" + _execFile
+
+                # zero out file for iterable write
+                tn.write(" > " + execFile + " \n")
+                tn.read_until(CMD_PROMPT, 3)
+
+                # write file in FILE_CHUNK sections
+                for c in content_serialized:
+                    tn.write("echo \"" + c + "\" >> " + execFile + " \n")
+                    tn.read_until(CMD_PROMPT, 3)
+
+                # decode original file from base64 on device and remove encoded file
+                tn.write("base64 -d " + execFile + " > " + decodedFile + " \n")
                 response = tn.read_until(CMD_PROMPT, 3)
-                tn.write("base64 -d /tmp/" + cronFile + " > " + RUN_LOCATION + decodedFile + " \n")
-                response = tn.read_until(CMD_PROMPT, 3)
-                print(RUN_LOCATION + decodedFile)
-                tn.write("rm -rf " + RUN_LOCATION + cronFile + " \n")
-                response=tn.read_until(CMD_PROMPT, 3)
-                tn.write("/usr/bin/nohup /bin/sh " + RUN_LOCATION + decodedFile + " &\n")
-                response=tn.read_until(CMD_PROMPT, 3)
+                tn.write("rm -rf " + execFile + " \n")
+                print tn.read_until(CMD_PROMPT, 3)
+
+                # execute script on device
+                tn.write("cd " + RUN_LOCATION + " && /usr/bin/nohup /bin/sh " + decodedFile + " " + arg_str +
+                         " >/dev/null 2>&1 &\n")
+                print tn.read_until(CMD_PROMPT, 3)
+
                 break
             if case(999):
                 if (query_yes_no("Are you sure you want to kill telnet?", default="no")):
@@ -214,5 +248,4 @@ if __name__ == '__main__':
             if case():
                 log.info("no case chosen")
         tn.write("exit \n")
-        response = tn.read_until(CMD_PROMPT, 3)
-
+        response = tn.read_until(CMD_PROMPT, 1)
