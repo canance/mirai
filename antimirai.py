@@ -7,13 +7,10 @@
 #          Charles Frank, Jr
 # Hardening script for Mirai (base variant)
 
-import argparse, socket
-import telnetlib, sys
+import argparse, socket, telnetlib, sys, string, random, logging, base64, urllib, json
 from time import strftime
-import string, random, logging
 from logging.handlers import RotatingFileHandler
 from requests import get
-import base64
 
 __author__ = 'dsu_csc791_spring2017'
 
@@ -54,13 +51,13 @@ def get_args():
     parser.add_argument('-u', '--user', type=str, help='* Logon user name', required=True)
     parser.add_argument('-pw', '--password', type=str, help='* Password for --user', required=True)
     parser.add_argument('-f', '--file_exec', type=str, help='Execute file on device, supply filname')
-    parser.add_argument('-l', '--logging', type=str, help='Setup [r]syslog logging on device', required=False)
     parser.add_argument('-o', '--output', type=str, help='Output file (default "date_time_mirai_harden_TARGET_PORT")e',
                         required=False, nargs='+', default=DATETIME)
     parser.add_argument('-s', '--severity', type=int,
                         help='''Hardening/Severity level, larger number takes more actions that are cummulative:
     1 - change default pass (csv write "date_time_mirai_changePW_IP|FQDN" in same format as (-f) target file)
-    2 - implement host.deny tcp/23 and/or tcp/22 for all but local LAN
+    2 - implement host.deny tcp/23 and/or tcp/22 for all but local LAN (
+        only works if a daemon is compiled with tcp wrappers, ldd /usr/sbin/sshd | grep 'libwrap')
     3 - iptables rules with drop and logging
     4 - create new random user, disable/nologin vulnerable one
     5 - change default port for telnet/ssh to random in /etc/services
@@ -70,7 +67,7 @@ def get_args():
     999 - kill and disable telnet/ssh(ensure measure to prevent lockout?)
     ''', required=False, default=0)
     parser.add_argument('-a', '--remote_arg', nargs='+', default=" ",
-                        help='Arguements to pass to remote script arguments (a="-t test")', required=False)
+                        help='Arguments to pass to remote script arguments (a="-t test")', required=False)
     parser.add_argument('-pr', '--proto', type=str, help='Target protocol, if other than telnet',
                         required=False, default='telnet')
 
@@ -89,13 +86,13 @@ def passwd_gen(size=12, chars=string.ascii_uppercase + string.digits):
 
 
 def login_telnet(tn, user, password):
-    response = tn.read_until("login: ")
+    tn.read_until("login: ")
     tn.write(user + "\n")
     if password:
-        response = tn.read_until("Password: ")
+        tn.read_until("Password: ")
         tn.write(password + "\n")
     # tn.write("w \n")
-    # response = tn.read_until(CMD_PROMPT, 3)
+    # tn.read_until(CMD_PROMPT, 3)
     return tn
 
 
@@ -103,11 +100,11 @@ def change_passwd_telnet(tn):
     # p = passwd_gen()
     p = 'admin'
     tn.write("passwd " + user + "\n")
-    response = tn.read_until("(current) UNIX password: ")
+    tn.read_until("(current) UNIX password: ")
     tn.write(password + "\n")
-    response = tn.read_until("Enter new UNIX password: ")
+    tn.read_until("Enter new UNIX password: ")
     tn.write(p + "\n")
-    response = tn.read_until("Retype new UNIX password: ")
+    tn.read_until("Retype new UNIX password: ")
     tn.write(p + "\n")
     targetDetails = "%s:%d:%s:%s:%s" % (target, port, proto, user, p,)
     log.info("Changed values: \t%s" % targetDetails)
@@ -200,19 +197,19 @@ if __name__ == '__main__':
                 addWAN = False
                 addLAN = False
                 try:
-                    ip = get('https://api.ipify.com').text
+                    _ip = json.loads(urllib.urlopen("http://ip.jsontest.com/").read())
+                    ip = str(_ip["ip"])
                 except:
                     ip = None
-                if (ip and query_yes_no("For host blocking, did you want to add your external "
-                                        "WAN IP (%s) to host.allow/iptables? " % ip, default="no")):
+                if (ip and query_yes_no("Did you want to allow your external WAN IP (%s)? " % ip, default="no")):
                     allowIP = ip
                     addWAN = True
-                if query_yes_no("For host blocking, did you want to add your internal LAN IP (%s) to allow? " % sockname,
+                if query_yes_no("Did you want to allow your internal LAN IP (%s)? " % sockname,
                         default="yes"):
                     addLAN = True
                     if addWAN: sockname = ", " + sockname
                     allowIP += sockname
-                if query_yes_no("Do you want to add to hosts/addresses to hosts.allow? ",  default="no"):
+                if query_yes_no("Do you want to add additional hosts/domains/IP's? ",  default="no"):
                     sys.stdout.write("Enter host/domain/ip comma seperated "
                                      "(e.g. 10.0., abc.xyz, .xyz.abv, 192.168.1.1, etc.: ")
                     manualAdd = (raw_input())
@@ -220,9 +217,9 @@ if __name__ == '__main__':
                     allowIP += manualAdd
                 if query_yes_no("Are you SURE you want to write '%s' to hosts.allow and deny "
                                 "all other telnet? " % allowIP, default="no"):
-                    tn.write("echo \"in.telnetd:" + allowIP + " #mirai_harden_" + DATETIME + "\" >> /etc/hosts.allow \n")
+                    tn.write("echo \"in.telnetd: " + allowIP + " #mirai_harden_" + DATETIME + "\" >> /etc/hosts.allow \n")
                     print tn.read_until(CMD_PROMPT, 3)
-                    tn.write("echo \"in.telnet: ALL  #mirai_harden_" + DATETIME + "\" >> /etc/hosts.deny \n")
+                    tn.write("echo \"in.telnetd: ALL  #mirai_harden_" + DATETIME + "\" >> /etc/hosts.deny \n")
                     print tn.read_until(CMD_PROMPT, 3)
                 break
             if case(7):
@@ -249,7 +246,7 @@ if __name__ == '__main__':
 
                 # decode original file from base64 on device and remove encoded file
                 tn.write("base64 -d " + execFile + " > " + decodedFile + " \n")
-                response = tn.read_until(CMD_PROMPT, 3)
+                tn.read_until(CMD_PROMPT, 3)
                 tn.write("rm -rf " + execFile + " \n")
                 print tn.read_until(CMD_PROMPT, 3)
 
@@ -266,4 +263,4 @@ if __name__ == '__main__':
             if case():
                 log.info("no case chosen")
         tn.write("exit \n")
-        response = tn.read_until(CMD_PROMPT, 1)
+        tn.read_until(CMD_PROMPT, 1)
