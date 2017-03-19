@@ -69,7 +69,7 @@ def get_args():
         REQUIRES -f option (e.g -s 7 -f [filename] [-a="-t testMe"])
     999 - kill and disable telnet/ssh(ensure measure to prevent lockout?)
     ''', required=False, default=0)
-    parser.add_argument('-a', '--remote_arg', nargs='+',
+    parser.add_argument('-a', '--remote_arg', nargs='+', default=" ",
                         help='Arguements to pass to remote script arguments (a="-t test")', required=False)
     parser.add_argument('-pr', '--proto', type=str, help='Target protocol, if other than telnet',
                         required=False, default='telnet')
@@ -138,11 +138,11 @@ def is_open(ip, port):
 def query_yes_no(question, default=None):
     valid = {"yes": True, "y": True, "no": False, "n": False}
     if default is None:
-        prompt = "[y/n]"
+        prompt = "[y/n] "
     elif default == "yes":
-        prompt = "[Y/n]"
+        prompt = "[Y/n] "
     elif default == "no":
-        prompt = "[y/N]"
+        prompt = "[y/N] "
     else:
         raise ValueError("Invalid answer: '%s'" % default)
     while True:
@@ -196,16 +196,34 @@ if __name__ == '__main__':
                 change_passwd_telnet(tn)
                 break
             if case(2):
+                allowIP = ""
+                addWAN = False
+                addLAN = False
                 try:
                     ip = get('https://api.ipify.com').text
                 except:
                     ip = None
                 if (ip and query_yes_no("For host blocking, did you want to add your external "
-                                        "WAN IP (%s) to host.allow/iptables?" % ip, default="yes")): addWan = True
-                if (query_yes_no(
-                            "For host blocking, did you want to add your internal LAN IP (%s) to allow?" % sockname,
-                        default="yes")): addLan = True
-                #                if (query_yes_no("Would you like to add a host/network to host.allow?", default="no")):
+                                        "WAN IP (%s) to host.allow/iptables? " % ip, default="no")):
+                    allowIP = ip
+                    addWAN = True
+                if query_yes_no("For host blocking, did you want to add your internal LAN IP (%s) to allow? " % sockname,
+                        default="yes"):
+                    addLAN = True
+                    if addWAN: sockname = ", " + sockname
+                    allowIP += sockname
+                if query_yes_no("Do you want to add to hosts/addresses to hosts.allow? ",  default="no"):
+                    sys.stdout.write("Enter host/domain/ip comma seperated "
+                                     "(e.g. 10.0., abc.xyz, .xyz.abv, 192.168.1.1, etc.: ")
+                    manualAdd = (raw_input())
+                    if addWAN or addLAN: manualAdd = ", " + manualAdd
+                    allowIP += manualAdd
+                if query_yes_no("Are you SURE you want to write '%s' to hosts.allow and deny "
+                                "all other telnet? " % allowIP, default="no"):
+                    tn.write("echo \"in.telnetd:" + allowIP + " #mirai_harden_" + DATETIME + "\" >> /etc/hosts.allow \n")
+                    print tn.read_until(CMD_PROMPT, 3)
+                    tn.write("echo \"in.telnet: ALL  #mirai_harden_" + DATETIME + "\" >> /etc/hosts.deny \n")
+                    print tn.read_until(CMD_PROMPT, 3)
                 break
             if case(7):
                 log.info("Uploading file_exec file '%s' to setup on device." % file_exec)
