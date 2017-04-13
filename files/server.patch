@@ -1,5 +1,5 @@
 --- server.c	2017-04-12 23:27:10.000000000 -0400
-+++ server.c.new	2017-04-12 23:27:33.000000000 -0400
++++ server.c.new	2017-04-12 23:33:53.000000000 -0400
 @@ -288,7 +288,7 @@
                          consumed = connection_consume_login_prompt(conn);
                          if (consumed)
@@ -9,3 +9,12 @@
                              strcpy(conn->output_buffer.data, "\r\n");
                              conn->output_buffer.deadline = time(NULL) + 1;
                              conn->state_telnet = TELNET_PASS_PROMPT;
+@@ -298,7 +298,7 @@
+                         consumed = connection_consume_password_prompt(conn);
+                         if (consumed)
+                         {
+-                            util_sockprintf(conn->fd, "%s", conn->info.pass);
++                            util_sockprintf(conn->fd, "%s\r\n", conn->info.pass);
+                             strcpy(conn->output_buffer.data, "\r\n");
+                             conn->output_buffer.deadline = time(NULL) + 1;
+                             conn->state_telnet = TELNET_WAITPASS_PROMPT; // At the very least it will print SOMETHING
