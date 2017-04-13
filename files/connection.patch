@@ -1,0 +1,11 @@
+--- connection.c	2017-04-12 23:15:51.000000000 -0400
++++ connection.c.new	2017-04-12 23:17:16.000000000 -0400
+@@ -288,7 +288,7 @@
+                         consumed = connection_consume_login_prompt(conn);
+                         if (consumed)
+                         {
+-                            util_sockprintf(conn->fd, "%s", conn->info.user);
++                            util_sockprintf(conn->fd, "%s\r\n", conn->info.user);
+                             strcpy(conn->output_buffer.data, "\r\n");
+                             conn->output_buffer.deadline = time(NULL) + 1;
+                             conn->state_telnet = TELNET_PASS_PROMPT;
