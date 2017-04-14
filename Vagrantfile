@@ -6,6 +6,12 @@ Vagrant.configure(2) do |config|
   config.vm.synced_folder "files/", "/mnt/vagrant"
   config.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: "files/"
 
+  config.vm.define "victim2" do |victim2|
+    victim2.vm.box = "ubuntu/trusty64"
+    victim2.vm.network "private_network", ip: "10.0.0.40"
+    victim2.vm.hostname = "victim2"
+  end
+
   config.vm.define "cnc" do |cnc|
     cnc.vm.network "private_network", ip: "10.0.0.10"
     cnc.vm.provision :shell, path: "init_cnc.sh"
