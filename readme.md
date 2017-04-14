@@ -15,6 +15,12 @@
     - fake dns redirects all queries to 10.0.0.10
   - victim (10.0.0.30)
     - tmux session running busybox telnetd
+    - debian
+  - victim2 (10.0.0.40)
+    - tmux sesion running busybox telnetd
+    - ubuntu
+
+NOTE: Currently, only victim2 is successfully being infected by the loader.
 
 ### Quick Start
 
@@ -24,7 +30,6 @@ $ git clone https://github.com/canance/mirai.git
 $ cd mirai
 $ vagrant up
 ```
-This will start cnc and then bot.  
 
 To SSH into a box use vagrant ssh followed by the VM's name.  For example:
 ```
@@ -40,6 +45,3 @@ To access admin interface from cnc or bot:
 ```
 $ telnet 10.0.0.10 23
 ```
-
-### Todo
-- Integrate with DigitalOcean API
