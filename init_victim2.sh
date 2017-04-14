@@ -3,7 +3,6 @@
 
 
 export DEBIAN_FRONTEND=noninteractive
-
 # Install packages
 apt-get install -y tmux
 
@@ -28,11 +27,7 @@ pts/9
 EOF
 
 # mirai likes busybox telnetd
-cd /root
-touch .hushlogin
-wget https://www.busybox.net/downloads/binaries/1.26.2-i686/busybox 2>/dev/null
-chmod +x busybox
-tmux new-session -d -s telnetd "./busybox telnetd -F"
+tmux new-session -d -s telnetd "busybox telnetd -F"
 
 # fakedns
 ifconfig lo:1 8.8.8.8/32

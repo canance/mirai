@@ -3,8 +3,6 @@
 
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get upgrade -y
 
 # step 1
 apt-get install -y tmux

@@ -10,6 +10,7 @@ Vagrant.configure(2) do |config|
     victim2.vm.box = "ubuntu/trusty64"
     victim2.vm.network "private_network", ip: "10.0.0.40"
     victim2.vm.hostname = "victim2"
+    victim2.vm.provision :shell, path: "init_victim2.sh"
   end
 
   config.vm.define "cnc" do |cnc|
