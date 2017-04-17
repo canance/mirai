@@ -15,7 +15,7 @@ from requests import get
 __author__ = 'dsu_csc791_spring2017'
 
 CMD_PROMPT = "$ "
-DATETIME = strftime("%Y%m%d_%H%m")
+DATETIME = strftime("%Y%m%d_%H%m_%S")
 RUN_LOCATION = "/tmp/"
 FILE_CHUNK = 2048
 
@@ -273,11 +273,11 @@ def create_new_user(tn, src_user):
    pass
 
 
-def replace_busybox(tn):
+def replace_bosybox(tn):
     tn.read_until(CMD_PROMPT, 1)
 
     tn.write('echo $(which busybox) > tmp_busybox; cp $(cat tmp_busybox) $(cat tmp_busybox).' + DATETIME + '\n')
-    tn.write('cp $(cat tmp_busybox) $(cat tmp_busybox).bin\n')
+    tn.write('if [ ! -f "${mybusybox}.bin" ]; then cp $(cat tmp_busybox) $(cat tmp_busybox).bin; fi\n')
 
     tn.write('echo \'#!/bin/sh\' > tmp_bb\n')
     tn.write('echo \'mybusybox=$(which busybox)\' >> tmp_bb \n')
@@ -350,8 +350,8 @@ if __name__ == '__main__':
                 create_new_user(tn, user)
                 break
             if case(6):
-                log.info("Intercept potentially dangerous busybox applets.")
-                replace_busybox(tn)
+                log.info("Intercet potentially dangerous bosubox applets.")
+                replace_bosybox(tn)
                 break
             if case(7):
                 log.info("Upload and run script on device option...")
