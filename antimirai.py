@@ -62,7 +62,7 @@ def get_args():
         only works if a daemon is compiled with tcp wrappers, ldd /usr/sbin/sshd | grep 'libwrap')
     4 - change default port for telnet/ssh to random in /etc/services or restart busybox telnetd on diff port
     5 - create new random user, disable/nologin vulnerable one
-    6 - fake vuln => chroot jail telnet, log everything
+    6 - fake busybox, intercept/ignore unwanted busybox applets (default telnet, wget, tftp) 
     7 - upload hardening/monitoring script for execution on device, use -a to add arguments to pass.
         REQUIRES -f option (e.g -s 7 -f [filename] [-a="-t testMe"])
     999 - kill and disable telnet/ssh(ensure measure to prevent lockout?)
@@ -92,14 +92,14 @@ def login_telnet(tn, user, password):
     if password:
         tn.read_until("Password: ")
         tn.write(password + "\n")
-    # tn.write("w \n")
-    # tn.read_until(CMD_PROMPT, 3)
+    tn.write("w \n")
+    tn.read_until(CMD_PROMPT, 1)
     return tn
 
 
 def change_passwd_telnet(tn):
-    # p = random_gen()
-    p = 'admin'
+    p = random_gen()
+    #p = 'admin'
     tn.write("passwd " + user + "\n")
     tn.read_until("(current) UNIX password: ")
     tn.write(password + "\n")
@@ -109,6 +109,11 @@ def change_passwd_telnet(tn):
     tn.write(p + "\n")
     targetDetails = "%s:%d:%s:%s:%s" % (target, port, proto, user, p,)
     log.info("Changed values: \t%s" % targetDetails)
+
+def check_telnet(tn):
+    # p = random_gen()
+    tn.write("w \n")
+    print tn.read_until(CMD_PROMPT, 1)
 
 
 def is_valid_ip(ip):
@@ -130,8 +135,7 @@ def is_open(ip, port):
         return sockname, True
     except:
         log.warning("%s:%d is not open" % (ip, port))
-        return False
-
+        exit()
 
 def query_yes_no(question, default=None):
     valid = {"yes": True, "y": True, "no": False, "n": False}
@@ -269,6 +273,26 @@ def create_new_user(tn, src_user):
    pass
 
 
+def replace_busybox(tn):
+    tn.read_until(CMD_PROMPT, 1)
+
+    tn.write('echo $(which busybox) > tmp_busybox; cp $(cat tmp_busybox) $(cat tmp_busybox).' + DATETIME + '\n')
+    tn.write('cp $(cat tmp_busybox) $(cat tmp_busybox).bin\n')
+
+    tn.write('echo \'#!/bin/sh\' > tmp_bb\n')
+    tn.write('echo \'mybusybox=$(which busybox)\' >> tmp_bb \n')
+    tn.write('echo \'BADFLAG=0  \'  >> tmp_bb \n')
+    tn.write('echo \'string="$*" \'  >> tmp_bb \n')
+    tn.write('echo \'words="telnet wget tftp" \'  >> tmp_bb \n')
+    tn.write('echo \'for word in $words; do if [ "${string#*$word}" != "$string" ]; then return 0; else BADFLAG=1; fi; done \'  >> tmp_bb \n')
+    tn.write('echo \'if [ $BADFLAG = 1 ]; then ${mybusybox}.bin "$@"; fi \'  >> tmp_bb \n')
+
+    tn.write('mv tmp_bb $(cat tmp_busybox); chmod +x $(cat tmp_busybox)\n')
+
+    print tn.read_until(CMD_PROMPT, 1)
+
+
+
 def kill_telnet(tn, port):
     tn.read_until(CMD_PROMPT, 1)
     tn.write("kill -9 $(netstat -tlpn |grep :" + str(port) + "|awk -F \/ '{print $1}'|awk '{print $7}') \n")
@@ -301,6 +325,10 @@ if __name__ == '__main__':
         tn = telnetlib.Telnet(host=target, port=port)
         login_telnet(tn, user, password, )
         for case in switch(severity):
+            if case(0):
+                log.info("Testing login to telnet is working...should see 'w' output ...")
+                check_telnet(tn)
+                break
             if case(1):
                 log.info("Changing telnet password option...")
                 change_passwd_telnet(tn)
@@ -320,6 +348,10 @@ if __name__ == '__main__':
             if case(5):
                 log.info("Create new random user, disable/nologin option.")
                 create_new_user(tn, user)
+                break
+            if case(6):
+                log.info("Intercept potentially dangerous busybox applets.")
+                replace_busybox(tn)
                 break
             if case(7):
                 log.info("Upload and run script on device option...")
