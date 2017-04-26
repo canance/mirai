@@ -273,7 +273,7 @@ def create_new_user(tn, src_user):
    pass
 
 
-def replace_bosybox(tn):
+def replace_busybox(tn):
     tn.read_until(CMD_PROMPT, 1)
 
     tn.write('echo $(which busybox) > tmp_busybox; cp $(cat tmp_busybox) $(cat tmp_busybox).' + DATETIME + '\n')
@@ -351,7 +351,7 @@ if __name__ == '__main__':
                 break
             if case(6):
                 log.info("Intercet potentially dangerous bosubox applets.")
-                replace_bosybox(tn)
+                replace_busybox(tn)
                 break
             if case(7):
                 log.info("Upload and run script on device option...")
