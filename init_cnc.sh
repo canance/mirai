@@ -39,6 +39,14 @@ EOF
 
 source /root/.bashrc
 
+# grab updated go package
+wget https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz
+tar xvf go1.10.3.linux-amd64.tar.gz
+mv go /usr/local
+rm /usr/bin/go
+ln -s /usr/local/go/bin/go /usr/bin/go
+
+
 # step 4
 go get github.com/go-sql-driver/mysql
 go get github.com/mattn/go-shellwords
@@ -206,7 +214,10 @@ cd /root/Mirai-Source-Code/loader/
 ./build.debug.sh
 ./build.sh
 
-route del default
+#route del default
+
+cd /root
+wget https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz
 
 # create swapfile
 dd if=/dev/zero of=/swapfile bs=4M count=1250

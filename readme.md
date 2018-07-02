@@ -2,7 +2,7 @@
 
 ### Requirements
 - vagrant
-
+  - [vagrant-vbguest plugin](https://github.com/dotless-de/vagrant-vbguest)
 ### Environment
 - Private network (10.0.0.0/8)
 - Servers
