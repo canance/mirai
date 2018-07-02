@@ -214,10 +214,8 @@ cd /root/Mirai-Source-Code/loader/
 ./build.debug.sh
 ./build.sh
 
-#route del default
+route del default
 
-cd /root
-wget https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz
 
 # create swapfile
 dd if=/dev/zero of=/swapfile bs=4M count=1250
